@@ -1,6 +1,8 @@
 # Omnidirectional Drive Robot Navigation
 
-This repository simulates a two wheeled differential drive robot. The robot is placed in an empty environment and it follows a path. The robot can follow a given path using either a PID controller or a Model Predictive Controller (MPC).
+This repository simulates a four-wheeled omnidirectional drive robot. The robot is placed in an empty environment and it follows a path. The robot can follow a given path using either a PID controller or a Model Predictive Controller (MPC).
+
+## Implementation adapted from: [Differential Drive Robot Navigation](https://github.com/zainkhan-afk/Differential-Drive-Robot-Navigation) 
 
 ## Simulation Details
 The mathematical models of robot kinematics and state update are used to simulate the robot movement. The robot inputs are the linear and angular velocities and the robot state consists of `x`, `y` and `θ`. The MPC and the PID controllers try to minimize the distance and angle between the robot centroid and the path point which in turn makes the robot follow its path. 
