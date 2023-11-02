@@ -1,27 +1,9 @@
-from car import Car
+from omnidirectional_robot import OmnidirectionalRobot
 from draw import Draw
-from controllers import PID, MPC
+from controllers import MPC
 import cv2
 from utils import *
-import argparse
 from parameters import *
-
-
-parser = argparse.ArgumentParser(description='Process some integers.')
-
-
-parser.add_argument('--controller', default="PID", 
-		help="Select the controller for the robot.\nAvailable:\n1) MPC\n2) PID\nDefault: PID")
-
-args = parser.parse_args()
-controller_name = args.controller.upper()
-
-
-if controller_name not in ["PID", "MPC"]:
-	print("Invalid controller used. Available controllers: MPC and PID.")
-	exit()
-
-print(f"Using {controller_name} Controller.")
 
 way_points = []
 
@@ -34,21 +16,15 @@ def add_waypoint(event, x, y, flags, param):
 
 draw = Draw(VIEW_W, VIEW_H, window_name = "Canvas", mouse_callback = add_waypoint)
 
-car = Car(50, 50)
+robot = OmnidirectionalRobot(100, 100)
 
-if controller_name == "PID":
-	controller = PID(kp_linear = 0.5, kd_linear = 0.1, ki_linear = 0,
-							kp_angular = 3, kd_angular = 0.1, ki_angular = 0)
-if controller_name == "MPC":
-	controller = MPC(horizon = MPC_HORIZON)
+controller = MPC(horizon = MPC_HORIZON)
 
-
-lw = 0
-rw = 0
 current_idx = 0
-linear_v = 0
-angular_v = 0
-car_path_points = []
+v_x = 0
+v_y = 0
+v_w = 0
+robot_path_points = []
 while True:
 	draw.clear()
 	draw.add_text("Press the right click to place a way point, press the left click to remove a way point", 
@@ -56,33 +32,31 @@ while True:
 	if len(way_points)>0:
 		draw.draw_path(way_points, color = (200, 200, 200), thickness = 1)
 
-	if len(car_path_points)>0:
-		draw.draw_path(car_path_points, color = (255, 0, 0), thickness = 1, dotted = True)
+	if len(robot_path_points)>0:
+		draw.draw_path(robot_path_points, color = (255, 0, 0), thickness = 1, dotted = True)
 
-	draw.draw(car.get_points(), color = (255, 0, 0), thickness = 1)
+	draw.draw(robot.get_points(), color = (255, 0, 0), thickness = 1)
 	
 
 	k = draw.show()
 
-	x, _ = car.get_state()
+	x, _ = robot.get_state()
 	if len(way_points)>0 and current_idx != len(way_points):
-		car_path_points.append([int(x[0, 0]), int(x[1, 0])])
+		robot_path_points.append([int(x[0, 0]), int(x[1, 0])])
 		goal_pt = way_points[current_idx]
-
-		if controller_name == "PID":
-			linear_v, angular_v = controller.get_control_inputs(x, goal_pt, car.get_points()[2], current_idx)
 		
-		if controller_name == "MPC":
-			linear_v, angular_v = controller.optimize(car = car, goal_x = goal_pt)
+		v_x, v_y = controller.optimize(robot = robot, goal_xy = goal_pt)
+		v_w = 0
 		
 		dist = get_distance(x[0, 0], x[1, 0], goal_pt[0], goal_pt[1])
 		if dist<10:
 			current_idx+= 1
 	else:
-		linear_v = 0
-		angular_v = 0
-	car.set_robot_velocity(linear_v, angular_v)
-	car.update(DELTA_T)
+		v_x = 0
+		v_y = 0
+		v_w = 0
+	robot.set_robot_velocity(v_x, v_y, v_w)
+	robot.update(DELTA_T)
 
 	if k == ord("q"):
 		break
